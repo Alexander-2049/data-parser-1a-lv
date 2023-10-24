@@ -8,8 +8,13 @@
  * Learn more at https://developers.cloudflare.com/workers/
  */
 
+import { getJSONfromHTML } from "./utils/getJSONfromHTML";
+import { getRestructuredData } from "./utils/getRestructuredData";
+
+
+
 export default {
-  async fetch(request, env, ctx) {
+  async fetch(request: Request) {
     const { searchParams } = new URL(request.url);
     const url = searchParams.get('url');
     if(!url) return new Response("URL is required");
@@ -23,23 +28,10 @@ export default {
       }
     };
 
-    const result = getJSONfromHTML(html);
-    if(result.offers.availability !== "http://schema.org/InStock") {
-      result.offers.availability = false;
-    } else {
-      result.offers.availability = true;
-    }
+    const data_original = getJSONfromHTML(html);
+    if(!data_original) return new Response("Can't parse JSON");
+    const data_restructured = getRestructuredData(data_original);
 
-    delete result['@context'];
-    delete result['@type'];
-    delete result.offers['@type'];
-    delete result['@id'];
-
-    return new Response(JSON.stringify(result), init);
+    return new Response(JSON.stringify(data_restructured), init);
   },
 };
-
-function getJSONfromHTML(html) {
-  const regExp = /<script type="application\/ld\+json">(.*)<\/script>/;
-  return JSON.parse(regExp.exec(html)[1]);
-}
