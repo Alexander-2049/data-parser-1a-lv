@@ -8,13 +8,18 @@
  * Learn more at https://developers.cloudflare.com/workers/
  */
 
-import { getJSONfromHTML } from "./utils/getJSONfromHTML";
+import { ResponseData, getJSONfromHTML } from "./utils/getJSONfromHTML";
+import getPriceHistoryFromID from "./utils/getPriceHistoryFromID";
 import { getRestructuredData } from "./utils/getRestructuredData";
+import writePriceHistoryToID from "./utils/writePriceHistoryToID";
 
-
+export interface Env {
+  API_HOST: string;
+  STORAGE: KVNamespace;
+}
 
 export default {
-  async fetch(request: Request) {
+  async fetch(request: Request, env: Env, ctx: ExecutionContext) {
     const { searchParams } = new URL(request.url);
     const url = searchParams.get('url');
     if(!url) return new Response("URL is required");
@@ -28,9 +33,27 @@ export default {
       }
     };
 
-    const data_original = getJSONfromHTML(html);
+    const data_original: ResponseData | null = getJSONfromHTML(html);
     if(!data_original) return new Response("Can't parse JSON");
-    const data_restructured = getRestructuredData(data_original);
+
+    const id = data_original.sku;
+    const history = await getPriceHistoryFromID(id, env);
+    if(history instanceof Error) {
+      return new Response(history.message);
+    }
+    const lastCheckDay = history.length === 0 ? -1 : new Date(history[history.length - 1].timestamp).getDay();
+    const lastCheckMonth = history.length === 0 ? -1 : new Date(history[history.length - 1].timestamp).getMonth();
+    const today = new Date();
+    if(history.length === 0 || lastCheckDay !== today.getDay() || lastCheckMonth !== today.getMonth()) {
+      history.push({
+        timestamp: Date.now(),
+        price: data_original.offers.price,
+        currency: data_original.offers.priceCurrency
+      });
+      await writePriceHistoryToID(id, history, env);
+    }
+
+    const data_restructured = getRestructuredData(data_original, history);
 
     return new Response(JSON.stringify(data_restructured), init);
   },

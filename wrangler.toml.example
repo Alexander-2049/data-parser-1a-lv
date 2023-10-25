@@ -4,7 +4,7 @@ compatibility_date = "2023-10-23"
 usage_model = "bundled"
 
 kv_namespaces = [
-  { binding = "STORAGE", id = "630027a2605546b89cd0be9b51c53902", preview_id = "7684437b1c424fa4b457aede6f9c5760" }
+  { binding = "STORAGE", id = "<ID>", preview_id = "<PREVIEW_ID>" }
 ]
 
 [triggers]
