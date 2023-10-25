@@ -20,26 +20,23 @@ export interface Env {
 
 export default {
   async fetch(request: Request, env: Env, ctx: ExecutionContext) {
+    const responseHeaders = new Headers();
+    responseHeaders.set('Access-Control-Allow-Origin', '*');
+    responseHeaders.set('Content-Type', 'application/json; charset=UTF-8');
     const { searchParams } = new URL(request.url);
     const url = searchParams.get('url');
-    if(!url) return new Response("URL is required");
+    if(!url) return new Response("URL is required", { headers: responseHeaders, status: 400 });
 
     const response = await fetch(url);
     const html = await response.text();
 
-    const init = {
-      headers: {
-        "Content-Type": "application/json; charset=UTF-8"
-      }
-    };
-
     const data_original: ResponseData | null = getJSONfromHTML(html);
-    if(!data_original) return new Response("Can't parse JSON");
+    if(!data_original) return new Response("Can't parse JSON", { headers: responseHeaders, status: 500 });
 
     const id: string = data_original.sku;
     const history: PriceData[] | Error = await getPriceHistoryFromID(id, env);
     if(history instanceof Error) {
-      return new Response(history.message);
+      return new Response(history.message, { headers: responseHeaders, status: 500 });
     }
     const lastCheckDay = history.length === 0 ? -1 : new Date(history[history.length - 1].timestamp).getDay();
     const lastCheckMonth = history.length === 0 ? -1 : new Date(history[history.length - 1].timestamp).getMonth();
@@ -55,6 +52,6 @@ export default {
 
     const data_restructured: RestructuredData = getRestructuredData(data_original, history);
 
-    return new Response(JSON.stringify(data_restructured), init);
+    return new Response(JSON.stringify(data_restructured), { headers: responseHeaders, status: 200 });
   },
 };
