@@ -9,8 +9,8 @@
  */
 
 import { ResponseData, getJSONfromHTML } from "./utils/getJSONfromHTML";
-import getPriceHistoryFromID from "./utils/getPriceHistoryFromID";
-import { getRestructuredData } from "./utils/getRestructuredData";
+import getPriceHistoryFromID, { PriceData } from "./utils/getPriceHistoryFromID";
+import { RestructuredData, getRestructuredData } from "./utils/getRestructuredData";
 import writePriceHistoryToID from "./utils/writePriceHistoryToID";
 
 export interface Env {
@@ -36,8 +36,8 @@ export default {
     const data_original: ResponseData | null = getJSONfromHTML(html);
     if(!data_original) return new Response("Can't parse JSON");
 
-    const id = data_original.sku;
-    const history = await getPriceHistoryFromID(id, env);
+    const id: string = data_original.sku;
+    const history: PriceData[] | Error = await getPriceHistoryFromID(id, env);
     if(history instanceof Error) {
       return new Response(history.message);
     }
@@ -53,7 +53,7 @@ export default {
       await writePriceHistoryToID(id, history, env);
     }
 
-    const data_restructured = getRestructuredData(data_original, history);
+    const data_restructured: RestructuredData = getRestructuredData(data_original, history);
 
     return new Response(JSON.stringify(data_restructured), init);
   },
