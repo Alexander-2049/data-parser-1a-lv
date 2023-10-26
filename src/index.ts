@@ -8,6 +8,7 @@
  * Learn more at https://developers.cloudflare.com/workers/
  */
 
+import getCacheKeyFromUrl from "./utils/getCacheKeyFromUrl";
 import { ResponseData, getJSONfromHTML } from "./utils/getJSONfromHTML";
 import getPriceHistoryFromID, { PriceData } from "./utils/getPriceHistoryFromID";
 import { RestructuredData, getRestructuredData } from "./utils/getRestructuredData";
@@ -27,7 +28,15 @@ export default {
     const url = searchParams.get('url');
     if(!url) return new Response("URL is required", { headers: responseHeaders, status: 400 });
 
-    const response = await fetch(url);
+    const cacheKey = getCacheKeyFromUrl(url);
+
+    const response = await fetch(url, {
+      cf: {
+        cacheTtl: 60 /* seconds */ * 60 /* minutes */ * 12 /* hours */,
+        cacheEverything: true,
+        cacheKey,
+      },
+    });
     const html = await response.text();
 
     const data_original: ResponseData | null = getJSONfromHTML(html);
