@@ -8,11 +8,9 @@
  * Learn more at https://developers.cloudflare.com/workers/
  */
 
-import getCacheKeyFromUrl from "./utils/getCacheKeyFromUrl";
-import { ResponseData, getJSONfromHTML } from "./utils/getJSONfromHTML";
-import getPriceHistoryFromID, { PriceData } from "./utils/getPriceHistoryFromID";
-import { RestructuredData, getRestructuredData } from "./utils/getRestructuredData";
-import writePriceHistoryToID from "./utils/writePriceHistoryToID";
+import { headers } from "./headers";
+import API from "./models/API";
+import ErrorAPI, { statusCode } from "./models/ErrorAPI";
 
 export interface Env {
   API_HOST: string;
@@ -21,46 +19,16 @@ export interface Env {
 
 export default {
   async fetch(request: Request, env: Env, ctx: ExecutionContext) {
-    const responseHeaders = new Headers();
-    responseHeaders.set('Access-Control-Allow-Origin', '*');
-    responseHeaders.set('Content-Type', 'application/json; charset=UTF-8');
     const { searchParams } = new URL(request.url);
     const url = searchParams.get('url');
-    if(!url) return new Response("URL is required", { headers: responseHeaders, status: 400 });
+    if(!url) return new ErrorAPI("url is required", statusCode.ClientErrorBadRequest).response();
 
-    const cacheKey = getCacheKeyFromUrl(url);
+    const pattern = /^https:\/\/www\.1a\.lv\/p\/[^/]+\/[^/]+$/;
+    if(!pattern.test(url)) return new ErrorAPI("wrong url", statusCode.ClientErrorBadRequest).response();
+    
+    const api = new API(env.STORAGE);
+    const data = await api.getData(url);
 
-    const response = await fetch(url, {
-      cf: {
-        cacheTtl: 60 /* seconds */ * 60 /* minutes */ * 12 /* hours */,
-        cacheEverything: true,
-        cacheKey,
-      },
-    });
-    const html = await response.text();
-
-    const data_original: ResponseData | null = getJSONfromHTML(html);
-    if(!data_original) return new Response("Can't parse JSON", { headers: responseHeaders, status: 500 });
-
-    const id: string = data_original.sku;
-    const history: PriceData[] | Error = await getPriceHistoryFromID(id, env);
-    if(history instanceof Error) {
-      return new Response(history.message, { headers: responseHeaders, status: 500 });
-    }
-    const lastCheckDay = history.length === 0 ? -1 : new Date(history[history.length - 1].timestamp).getDay();
-    const lastCheckMonth = history.length === 0 ? -1 : new Date(history[history.length - 1].timestamp).getMonth();
-    const today = new Date();
-    if(history.length === 0 || lastCheckDay !== today.getDay() || lastCheckMonth !== today.getMonth()) {
-      history.push({
-        timestamp: Date.now(),
-        price: data_original.offers.price,
-        currency: data_original.offers.priceCurrency
-      });
-      await writePriceHistoryToID(id, history, env);
-    }
-
-    const data_restructured: RestructuredData = getRestructuredData(data_original, history);
-
-    return new Response(JSON.stringify(data_restructured), { headers: responseHeaders, status: 200 });
+    return new Response(JSON.stringify(data), {headers});
   },
 };

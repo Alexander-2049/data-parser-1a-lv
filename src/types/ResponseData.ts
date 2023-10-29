@@ -17,11 +17,3 @@ export interface Offers {
     availability:  string;
     url:           string;
 }
-
-export function getJSONfromHTML(html: string): ResponseData | null {
-    const regExp = /<script type="application\/ld\+json">(.*)<\/script>/;
-    const parsed = regExp.exec(html);
-    if(parsed === null || parsed.length < 2) return null;
-    const result = JSON.parse(parsed[1]);
-    return result;
-  }
