@@ -24,7 +24,8 @@ export default {
     if(!url) return new ErrorAPI("url is required", statusCode.ClientErrorBadRequest).response();
 
     const pattern = /^https:\/\/www\.1a\.lv\/p\/[^/]+\/[^/]+$/;
-    if(!pattern.test(url)) return new ErrorAPI("wrong url", statusCode.ClientErrorBadRequest).response();
+    const pattern2 = /^https:\/\/www\.1a\.lv\/ru\/p\/[^/]+\/[^/]+$/;
+    if(!pattern.test(url) && !pattern2.test(url)) return new ErrorAPI("wrong url", statusCode.ClientErrorBadRequest).response();
     
     const api = new API(env.STORAGE);
     const data = await api.getData(url);
