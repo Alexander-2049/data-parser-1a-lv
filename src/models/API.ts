@@ -1,5 +1,5 @@
 import { ConvertedData } from "../types/ConvertedData";
-import { PriceData } from "../types/PriceData";
+import { PriceData, PriceHistory } from "../types/PriceData";
 import { ResponseData } from "../types/ResponseData";
 import ErrorAPI from "./ErrorAPI";
 import { StatusCode } from 'status-code-enum';
@@ -19,11 +19,12 @@ export default class API {
             return new ErrorAPI("Data was not found", StatusCode.ClientErrorNotFound);
         }
         const id = data.sku;
-        const priceHistory = await this.getPriceHistoryFromID(id);
-        const lastUpdateTime = this.getLastUpdateTime(priceHistory);
+        const priceHistoryResponse = await this.getPriceHistoryByID(id);
+        const priceHistory = priceHistoryResponse ? priceHistoryResponse : { url: data.url, history: [] };
+        const lastUpdateTime = this.getLastUpdateTime(priceHistory.history);
         const isUpdateRequired = this.isPriceHistoryUpdateRequired(lastUpdateTime);
         if(isUpdateRequired) {
-            priceHistory.push({
+            priceHistory.history.push({
                 timestamp: Date.now(),
                 price: data.offers.price,
                 currency: data.offers.priceCurrency
@@ -32,6 +33,22 @@ export default class API {
         }
         const converted = this.getConvertResponseData(data, priceHistory);
         return converted;
+    }
+
+    public async getPriceHistoryByURL(url: string): Promise<PriceHistory | ErrorAPI> {
+        const data: ConvertedData | ErrorAPI = await this.getData(url);
+        if(data instanceof ErrorAPI) {
+            return data;
+        }
+        return data.history;
+    }
+
+    public async getPriceHistoryByID(id: string): Promise<PriceHistory | null> {
+        const data = await this.STORAGE.get(id);
+        if (data === null) {
+            return null;
+        }
+        return JSON.parse(data);
     }
 
     private fetch(url: string): Promise<Response> {
@@ -54,7 +71,7 @@ export default class API {
         return result;
     }
 
-    private getConvertResponseData(responseData: ResponseData, priceHistory: PriceData[]): ConvertedData {
+    private getConvertResponseData(responseData: ResponseData, priceHistory: PriceHistory): ConvertedData {
         const { name, url, description, sku, image, offers } = responseData;
         const { price, priceCurrency, availability } = offers;
     
@@ -75,20 +92,12 @@ export default class API {
         return result;
     }
 
-    private async getPriceHistoryFromID(id: string): Promise<PriceData[]> {
-        const data = await this.STORAGE.get(id);
-        if (data === null) {
-            return [];
-        }
-        return JSON.parse(data);
-    }
-
     private getCacheKeyFromURL(url: string): string {
         const arr = new URL(url).pathname.split("/");
         return arr[arr.length - 1];
     }
     
-    private async savePriceHistory(id: string, priceHistory: PriceData[]): Promise<void> {
+    private async savePriceHistory(id: string, priceHistory: PriceHistory): Promise<void> {
         await this.STORAGE.put(id, JSON.stringify(priceHistory));
     }
 

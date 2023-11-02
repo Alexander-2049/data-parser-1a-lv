@@ -21,15 +21,32 @@ export default {
   async fetch(request: Request, env: Env, ctx: ExecutionContext) {
     const { searchParams } = new URL(request.url);
     const url = searchParams.get('url');
-    if(!url) return new ErrorAPI("url is required", statusCode.ClientErrorBadRequest).response();
-
-    const pattern = /^https:\/\/www\.1a\.lv\/p\/[^/]+\/[^/]+$/;
-    const pattern2 = /^https:\/\/www\.1a\.lv\/ru\/p\/[^/]+\/[^/]+$/;
-    if(!pattern.test(url) && !pattern2.test(url)) return new ErrorAPI("wrong url", statusCode.ClientErrorBadRequest).response();
-    
-    const api = new API(env.STORAGE);
-    const data = await api.getData(url);
-
-    return new Response(JSON.stringify(data), {headers});
+    const id = searchParams.get('id');
+    if(url && !id) {
+      const pattern = /^https:\/\/www\.1a\.lv\/p\/[^/]+\/[^/]+$/;
+      const pattern2 = /^https:\/\/www\.1a\.lv\/ru\/p\/[^/]+\/[^/]+$/;
+      if(!pattern.test(url) && !pattern2.test(url)) return new ErrorAPI("wrong url", statusCode.ClientErrorBadRequest).response();
+      
+      const api = new API(env.STORAGE);
+      const data = await api.getData(url);
+  
+      return new Response(JSON.stringify(data), {headers});
+    } else if(id) {
+      const api = new API(env.STORAGE);
+      const data = await api.getPriceHistoryByID(id);
+      if(data !== null) {
+        return new Response(JSON.stringify(data));
+      }
+      if(data === null && url) {
+        const data = await api.getPriceHistoryByURL(url);
+        if(data instanceof ErrorAPI) {
+          return data.response();
+        }
+        return new Response(JSON.stringify(data));
+      }
+      return new ErrorAPI("wrong id/url", statusCode.ClientErrorBadRequest).response();
+    } else {
+      return new ErrorAPI("url || id is required", statusCode.ClientErrorBadRequest).response();
+    }
   },
 };

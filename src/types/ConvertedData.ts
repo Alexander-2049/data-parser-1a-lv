@@ -1,4 +1,4 @@
-import { PriceData } from "./PriceData";
+import { PriceHistory } from "./PriceData";
 
 export interface ConvertedData {
     name:        string;
@@ -7,7 +7,7 @@ export interface ConvertedData {
     id:         string;
     image:       string[];
     offers:      Offers;
-    history:    PriceData[];
+    history:    PriceHistory;
 }
 
 export interface Offers {
