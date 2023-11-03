@@ -35,14 +35,14 @@ export default {
       const api = new API(env.STORAGE);
       const data = await api.getPriceHistoryByID(id);
       if(data !== null) {
-        return new Response(JSON.stringify(data));
+        return new Response(JSON.stringify(data.history));
       }
       if(data === null && url) {
         const data = await api.getPriceHistoryByURL(url);
         if(data instanceof ErrorAPI) {
           return data.response();
         }
-        return new Response(JSON.stringify(data));
+        return new Response(JSON.stringify(data.history));
       }
       return new ErrorAPI("wrong id/url", statusCode.ClientErrorBadRequest).response();
     } else {

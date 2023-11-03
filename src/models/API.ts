@@ -40,7 +40,7 @@ export default class API {
         if(data instanceof ErrorAPI) {
             return data;
         }
-        return data.history;
+        return data;
     }
 
     public async getPriceHistoryByID(id: string): Promise<PriceHistory | null> {
@@ -111,7 +111,7 @@ export default class API {
                 priceCurrency,
                 availability: availability === "http://schema.org/InStock" ? true : false
             },
-            history: priceHistory
+            history: priceHistory.history
         }
     
         return result;
