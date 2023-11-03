@@ -1,19 +1,25 @@
-export interface ResponseData {
-    "@context":  string;
-    "@type":     string;
-    name:        string;
-    url:         string;
-    description: string;
-    sku:         string;
-    image:       string[];
-    offers:      Offers;
-    "@id":       string;
-}
+// export interface ResponseData {
+//     "@context":  string;
+//     "@type":     string;
+//     name:        string;
+//     url:         string;
+//     description: string;
+//     sku:         string;
+//     image:       string[];
+//     offers:      Offers;
+//     "@id":       string;
+// }
 
-export interface Offers {
-    "@type":       string;
-    price:         number;
-    priceCurrency: string;
-    availability:  string;
-    url:           string;
+// export interface Offers {
+//     "@type":       string;
+//     price:         number;
+//     priceCurrency: string;
+//     availability:  string;
+//     url:           string;
+// }
+
+export interface ResponseData {
+    id:             string;
+    url:            string;
+    price:          number;
 }

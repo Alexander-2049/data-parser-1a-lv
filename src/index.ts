@@ -29,8 +29,11 @@ export default {
       
       const api = new API(env.STORAGE);
       const data = await api.getData(url);
+      if(data instanceof ErrorAPI) {
+        return data.response();
+      }
   
-      return new Response(JSON.stringify(data), {headers});
+      return new Response(JSON.stringify(data.history), {headers});
     } else if(id) {
       const api = new API(env.STORAGE);
       const data = await api.getPriceHistoryByID(id);
