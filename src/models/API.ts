@@ -129,8 +129,7 @@ export default class API {
     private isPriceHistoryUpdateRequired(lastUpdateTime: number): boolean {
         const currentTime = Date.now();
         
-        // const updateInterval = 12 * 60 * 60 * 1000; // 12 hours in milliseconds
-        const updateInterval = 1000; // 12 hours in milliseconds
+        const updateInterval = 12 * 60 * 60 * 1000; // 12 hours in milliseconds
 
         if (currentTime - lastUpdateTime >= updateInterval) {
             return true; // Update is required
