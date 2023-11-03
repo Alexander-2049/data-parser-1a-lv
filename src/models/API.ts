@@ -48,7 +48,32 @@ export default class API {
         if (data === null) {
             return null;
         }
-        return JSON.parse(data);
+        const data_parsed: PriceHistory = JSON.parse(data);
+        if(this.isPriceHistoryUpdateRequired(data_parsed.history[data_parsed.history.length - 1].timestamp)) {
+            const data: PriceHistory | ErrorAPI = await this.updatePriceHistory(data_parsed);
+            if(data instanceof ErrorAPI) {
+                return null;
+            }
+            return data;
+        }
+        return data_parsed;
+    }
+
+    private async updatePriceHistory(priceHistory: PriceHistory) {
+        const response = await this.fetch(priceHistory.url);
+        const html = await response.text();
+        const data: ResponseData | null = this.getDataFromHTML(html);
+        if(data === null) {
+            return new ErrorAPI("Data was not found", StatusCode.ClientErrorNotFound);
+        }
+        const id = data.sku;
+        priceHistory.history.push({
+            timestamp: Date.now(),
+            price: data.offers.price,
+            currency: data.offers.priceCurrency
+        });
+        await this.savePriceHistory(id, priceHistory);
+        return priceHistory;
     }
 
     private fetch(url: string): Promise<Response> {
@@ -104,7 +129,8 @@ export default class API {
     private isPriceHistoryUpdateRequired(lastUpdateTime: number): boolean {
         const currentTime = Date.now();
         
-        const updateInterval = 12 * 60 * 60 * 1000; // 12 hours in milliseconds
+        // const updateInterval = 12 * 60 * 60 * 1000; // 12 hours in milliseconds
+        const updateInterval = 1000; // 12 hours in milliseconds
 
         if (currentTime - lastUpdateTime >= updateInterval) {
             return true; // Update is required
